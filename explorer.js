@@ -1,34 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, FlatList, RefreshControl, PermissionsAndroid, Platform, Alert, Text, Animated } from 'react-native';
-import Folder from './folder';
-import File from './file';
-import * as API from './api';
-import RNFetchBlob from 'rn-fetch-blob'
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  FlatList,
+  RefreshControl,
+  PermissionsAndroid,
+  Platform,
+  Alert
+} from "react-native";
+import RNFetchBlob from "rn-fetch-blob";
+import Folder from "./folder";
+import File from "./file";
+import * as API from "./api";
 
-const dimensions = Dimensions.get('window');
+const dimensions = Dimensions.get("window");
 
 const GoogleDriveExplorer = props => {
   const [state, _setState] = useState({
     loading: true,
     error: false,
-    folderID: props.url.split('/').pop(),
+    folderID: props.url.split("/").pop(),
     parents: [],
     files: [],
-    accessToken: null,
+    accessToken: null
   });
-
-  const [value] = useState(new Animated.Value(0));
 
   const setState = newState => {
     _setState({
       ...state,
-      ...newState,
+      ...newState
+    });
+  };
+
+  const sortByName = array => {
+    return array.sort((a, b) => {
+      if (a.name < b.name) {
+        return -1;
+      } else if (a.name > b.name) {
+        return 1;
+      } else {
+        return 0;
+      }
     });
   };
 
   const goToParent = () => {
     if (parentPresent()) {
-      setState({ loading: true, folderID: state.parents.pop() })
+      setState({ loading: true, folderID: state.parents.pop() });
     }
   };
 
@@ -36,25 +55,17 @@ const GoogleDriveExplorer = props => {
     return state.parents.length > 0;
   };
 
-  props.reference(() => {
-    return { goToParent, parentPresent };
-  });
-
   const renderFolder = folder => {
-    return (
-      <Folder data={folder} onPress={changeFolder} />
-    );
+    return <Folder data={folder} onPress={changeFolder} />;
   };
 
-  const changeFolder = (id) => {
+  const changeFolder = id => {
     state.parents.push(state.folderID);
-    setState({ loading: true, folderID: id })
-  }
+    setState({ loading: true, folderID: id });
+  };
 
   const renderFile = file => {
-    return (
-      <File data={file} onPress={() => askDownload(file)} />
-    );
+    return <File data={file} onPress={() => askDownload(file)} />;
   };
 
   const renderItem = object => {
@@ -65,34 +76,44 @@ const GoogleDriveExplorer = props => {
     }
   };
 
+  const buildFetchOptions = () => {
+    return {
+      headers: buildAuthorizationHeader()
+    };
+  };
+
+  const buildAuthorizationHeader = () => {
+    return {
+      Authorization: "Bearer " + state.accessToken
+    };
+  };
+
   const fetchData = () => {
     setState({ loading: true });
-    const options = {
-      headers: new Headers({
-        'Authorization': 'Bearer ' + state.accessToken
-      })
-    };
-    fetch(API.urls.folderInfo(state.folderID), options).then((folderResponse) => {
+    const options = buildFetchOptions();
+    fetch(API.urls.folderInfo(state.folderID), options).then(folderResponse => {
       if (folderResponse.ok) {
-        folderResponse.json().then((folder) => {
-          fetch(API.urls.folderFiles(state.folderID), options).then((filesResponse) => {
-            if (filesResponse.ok) {
-              filesResponse.json().then((filesJson) => {
-                let folders = [];
-                let files = [];
-                filesJson.files.forEach(element => {
-                  if (element.mimeType === API.folderMimeType) {
-                    folders.push(element);
-                  } else {
-                    files.push(element);
-                  }
+        folderResponse.json().then(folder => {
+          fetch(API.urls.folderFiles(state.folderID), options).then(
+            filesResponse => {
+              if (filesResponse.ok) {
+                filesResponse.json().then(filesJson => {
+                  let folders = [];
+                  let files = [];
+                  filesJson.files.forEach(element => {
+                    if (element.mimeType === API.folderMimeType) {
+                      folders.push(element);
+                    } else {
+                      files.push(element);
+                    }
+                  });
+                  folders = sortByName(folders);
+                  files = sortByName(files);
+                  setState({ files: folders.concat(files), loading: false });
                 });
-                folders = folders.sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0));
-                files = files.sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0));
-                setState({ files: folders.concat(files), loading: false });
-              });
+              }
             }
-          });
+          );
         });
       } else {
         setState({ loading: false, error: true });
@@ -101,70 +122,91 @@ const GoogleDriveExplorer = props => {
   };
 
   const requestStoragePermission = async () => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       try {
-        return PermissionsAndroid.RESULTS.GRANTED === await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-        ]);
+        return (
+          PermissionsAndroid.RESULTS.GRANTED ===
+          (await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          ]))
+        );
       } catch (err) {
         console.warn(err);
       }
     }
   };
 
-  const download = async (file) => {
+  const download = async file => {
     await requestStoragePermission();
-    const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`
-    const destination = RNFetchBlob.fs.dirs.DownloadDir + '/' + file.name;
-    RNFetchBlob.config({ path: destination, addAndroidDownloads: { useDownloadManager: true, notification: true, title: file.name, mime: file.mimeType, path: destination } })
-      .fetch('GET', url, { Authorization: 'Bearer ' + state.accessToken })
+    const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+    const destination = RNFetchBlob.fs.dirs.DownloadDir + "/" + file.name;
+    RNFetchBlob.config({
+      path: destination,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: file.name,
+        mime: file.mimeType,
+        path: destination
+      }
+    })
+      .fetch("GET", url, buildAuthorizationHeader())
       .progress((received, total) => {
-        setState({ downloadProgress: received / total * 100 });
-      }).then((resp) => {
+        setState({ downloadProgress: (received / total) * 100 });
+      })
+      .then(resp => {
         Alert.alert(
-          'Download complete',
-          'Your file has been saved as "' + file.name + '" in your downloads folder',
+          "Download complete",
+          `Your file has been saved as "${file.name}" in your downloads folder`,
           [
             {
-              text: 'Open file', onPress: () => {
-                if (Platform.OS === 'android') {
-                  RNFetchBlob.android.actionViewIntent(destination, file.mimeType);
-                } else if (Platform.OS === 'ios') {
+              text: "Open file",
+              onPress: () => {
+                if (Platform.OS === "android") {
+                  RNFetchBlob.android.actionViewIntent(
+                    destination,
+                    file.mimeType
+                  );
+                } else if (Platform.OS === "ios") {
                   RNFetchBlob.ios.previewDocument(destination);
                 } else {
-                  console.warn('Unsupported platform');
+                  console.warn("Unsupported platform");
                 }
               }
             },
-            { text: 'OK' }
+            { text: "OK" }
           ]
         );
-      }).catch((error) => {
-        console.log(error);
       })
+      .catch(error => {
+        console.warn(error);
+      });
   };
 
-  const askDownload = (file) => {
-    Alert.alert(file.name,
-      'Do you want to download this file?',
-      [
-        { text: 'Cancel' },
-        { text: 'OK', onPress: () => download(file) },
-      ]
-    );
+  const askDownload = file => {
+    Alert.alert(file.name, "Do you want to download this file?", [
+      { text: "Cancel" },
+      { text: "OK", onPress: () => download(file) }
+    ]);
   };
 
+  // This allows us to make visible this functions to the react parent component
+  props.reference(() => {
+    return { goToParent: goToParent.bind(this), parentPresent: parentPresent.bind(this) };
+  });
+
+  // Fetching the token in the first load
   useEffect(() => {
-    API.getAccessToken().then((token) => {
+    API.getAccessToken().then(token => {
       setState({ accessToken: token });
-    })
+    });
   }, []);
 
+  // Fetch the data if the folder id or access token has changed
   useEffect(() => {
     if (state.accessToken != null) fetchData();
-  }, [state.accessToken, state.folderID]);
-
+  }, [state.folderID, state.accessToken]);
 
   return (
     <View style={styles.container}>
@@ -173,10 +215,7 @@ const GoogleDriveExplorer = props => {
         data={state.files}
         renderItem={renderItem}
         refreshControl={
-          <RefreshControl
-            onRefresh={fetchData}
-            refreshing={state.loading}
-          />
+          <RefreshControl onRefresh={fetchData} refreshing={state.loading} />
         }
       />
     </View>
@@ -185,15 +224,15 @@ const GoogleDriveExplorer = props => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1
   },
   flatList: {
     height: dimensions.height,
-    width: dimensions.width,
+    width: dimensions.width
   },
   row: {
     flex: 1,
-    justifyContent: "space-around",
+    justifyContent: "space-around"
   }
 });
 
