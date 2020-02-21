@@ -1,0 +1,12 @@
+{
+  "name": "google-drive-explorer",
+  "version": "1.0.0",
+  "description": "A Google Drive file explorer",
+  "main": "index.js",
+  "keywords": ["google", "drive", "gdrive", "google-drive"],
+  "author": "Luciano Rocha <rocha.lucho@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    
+  }
+}
