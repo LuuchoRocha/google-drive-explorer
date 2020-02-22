@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from "react-native";
-import Icon from "react-native-vector-icons/MaterialIcons";
+import * as Utils from './utils';
 
 const File = props => {
   const date = new Date(props.data.modifiedTime);
@@ -8,11 +8,12 @@ const File = props => {
     <TouchableOpacity style={styles.container} onPress={props.onPress}>
       <View style={styles.flexContainer}>
         <View style={styles.flex}>
-          <Icon size={24} color="#49f" name="insert-drive-file" style={styles.icon} />
+          <Utils.Icon mimeType={props.data.mimeType} />
           <Text style={styles.name}>{props.data.name}</Text>
         </View>
-        <View style={styles.dateWrapper}>
-          <Text style={styles.date}>{date.toLocaleDateString()}</Text>
+        <View style={styles.fileInfo}>
+          <Text style={styles.date}>{Utils.formatSize(props.data.size)}</Text>
+          <Text style={styles.date}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -47,10 +48,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     fontSize: 12,
   },
-  icon: {
-    paddingHorizontal: 8,
-  },
-  dateWrapper: {
+  fileInfo: {
     alignItems: 'flex-end'
   },
 })

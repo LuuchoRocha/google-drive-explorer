@@ -1,6 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import * as Utils from './utils';
 
 const Folder = props => {
   const date = new Date(props.data.modifiedTime);
@@ -12,7 +13,8 @@ const Folder = props => {
           <Text style={styles.name}>{props.data.name}</Text>
         </View>
         <View style={styles.dateWrapper}>
-          <Text style={styles.date}>{date.toLocaleDateString()}</Text>
+          <Text style={styles.date}>{props.data.size}</Text>
+          <Text style={styles.date}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
         </View>
       </View>
     </TouchableOpacity>

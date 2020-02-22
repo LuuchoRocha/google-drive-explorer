@@ -17,7 +17,7 @@ async function getAccessToken() {
     const accessToken = (await response.json()).access_token;
     return accessToken;
   } catch (error) {
-    console.log(error);
+    console.warn(error);
     return null;
   }
 };
@@ -25,6 +25,20 @@ async function getAccessToken() {
 const urls = {
   folderInfo: (id) => (baseURL + "files/" + id),
   folderFiles: (id) => (baseURL + "files?q=\"" + id + "\" in parents" + "&fields=files/*"),
+  folderFilesCount: (id) => (baseURL + "files?q=\"" + id + "\" in parents" + "&fields=files/id"),
+  downloadFile: (id) => (baseURL + "files/" + id + "?alt=media")
 };
 
-export { getAccessToken, baseURL, folderMimeType, urls };
+const buildFetchOptions = (accessToken) => {
+  return {
+    headers: buildAuthorizationHeader(accessToken)
+  };
+};
+
+const buildAuthorizationHeader = (accessToken) => {
+  return {
+    Authorization: "Bearer " + accessToken
+  };
+};
+
+export { getAccessToken, baseURL, folderMimeType, urls, buildFetchOptions, buildAuthorizationHeader };
