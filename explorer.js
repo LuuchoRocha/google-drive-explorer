@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, FlatList, RefreshControl, Platform, Alert } from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, Platform, Alert, ActivityIndicator, Text } from "react-native";
 import RNFetchBlob from "rn-fetch-blob";
 import * as API from "./api";
 import * as Utils from './utils'
@@ -10,13 +10,13 @@ const GoogleDriveExplorer = props => {
   const [state, _setState] = useState({
     loading: true,
     error: false,
+    rootId: props.url.split("/").pop(),
     folderID: props.url.split("/").pop(),
     parents: [],
-    files: [],
-    accessToken: null
+    data: {},
+    accessToken: null,
+    firstLoad: true,
   });
-
-  const isFirstRun = useRef(true);
 
   const setState = newState => {
     _setState({
@@ -31,69 +31,69 @@ const GoogleDriveExplorer = props => {
 
   const goToParent = () => {
     if (parentPresent()) {
-      setState({ loading: true, folderID: state.parents.pop() });
+      setState({ folderID: state.parents.pop() });
     }
   };
 
   const changeFolder = id => {
     state.parents.push(state.folderID);
-    setState({ loading: true, folderID: id });
+    setState({ folderID: id });
   };
 
   const renderFolder = folder => {
-    return <Folder data={folder} onPress={changeFolder} />;
+    return <Folder data={folder} onPress={changeFolder} key={folder.id} />;
   };
 
   const renderFile = file => {
-    return <File data={file} onPress={() => askDownload(file)} />;
+    return <File data={file} onPress={() => askDownload(file)} key={file.id} />;
   };
 
   const renderItem = object => {
     if (object.item.mimeType === API.folderMimeType) {
+      object.item.elements = state.data[object.item.id].elements;
       return renderFolder(object.item);
     } else {
       return renderFile(object.item);
     }
   };
 
-  const fetchData = async (accessToken) => {
+  const fetchData = async (accessToken, folderId) => {
     setState({ loading: true });
 
-    const token = accessToken != null ? accessToken : state.accessToken;
-    const options = API.buildFetchOptions(token);
-    const filesResponse = await fetch(API.urls.folderFiles(state.folderID), options);
+    const options = API.buildFetchOptions(accessToken);
+    let pending = [folderId || state.folderID];
+    let data = {};
+    let files, folders, folderResponse, filesResponse, folderJson, filesJson, id;
 
-    if (filesResponse.ok) {
-      const json = await filesResponse.json();
-      let folders = [];
-      let files = [];
-      let folderResponse, folderJsonResponse;
+    do {
+      id = pending.pop();
+      folderResponse = await fetch(API.urls.folderInfo(id), options);
+      filesResponse = await fetch(API.urls.folderFiles(id), options);
+      if (folderResponse.ok && filesResponse.ok) {
+        folderJson = await folderResponse.json();
+        filesJson = await filesResponse.json();
+        folders = [];
+        files = [];
 
-      for (const element of json.files) {
-        if (element.mimeType === API.folderMimeType) {
-          folderResponse = await fetch(API.urls.folderFilesCount(element.id), options);
-          folderJsonResponse = await folderResponse.json();
-          element.files = folderJsonResponse.files;
-          folders.push(element);
-        } else {
-          files.push(element);
+        for (const element of filesJson.files) {
+          if (element.mimeType === API.folderMimeType) {
+            pending.push(element.id);
+            folders.push(element);
+          } else {
+            files.push(element);
+          }
         }
-      }
 
-      folders = Utils.sortByName(folders);
-      files = Utils.sortByName(files);
+        folders = Utils.sortByName(folders);
+        files = Utils.sortByName(files);
 
-      console.log(files);
-      
-      if (accessToken != null ) {
-        setState({ files: folders.concat(files), loading: false, accessToken: token });
+        data[id] = { id: folderJson.id, name: folderJson.name, elements: folders.concat(files) };
       } else {
-        setState({ files: folders.concat(files), loading: false });
+        console.warn('Can\'t load files');
       }
-    }
-    else {
-      setState({ loading: false, error: true });
-    }
+    } while (pending.length > 0);
+
+    setState({ data: data, loading: false, accessToken: accessToken, firstLoad: false });
   };
 
   const download = file => {
@@ -150,42 +150,57 @@ const GoogleDriveExplorer = props => {
     ]);
   };
 
+  const refresh = () => {
+    fetchData(state.accessToken, state.rootId);
+  }
+
   useEffect(() => {
     API.getAccessToken().then(token => {
-      console.log("Fetching after get token")
       fetchData(token);
     });
   }, []);
 
-  useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
-    fetchData();
-  }, [state.folderID]);
-
   props.reference(() => {
-    return { goToParent: goToParent.bind(this), parentPresent: parentPresent.bind(this) };
+    return { goToParent: goToParent.bind(this), parentPresent: parentPresent.bind(this), refresh: refresh.bind(this) };
   });
 
-  return (
-    <View style={styles.container}>
-      <FlatList
-        style={styles.flatList}
-        data={state.files}
-        renderItem={renderItem}
-        refreshControl={
-          <RefreshControl onRefresh={fetchData} refreshing={state.loading} />
-        }
-      />
-    </View>
-  );
+  const getData = () => {
+    console.log('getData', state);
+    if (state.data[state.folderID]) return state.data[state.folderID].elements;
+    else return [];
+  }
+
+  if (state.firstLoad) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ color: props.color, fontSize: 16, fontWeight: "bold" }}>Loading files...</Text>
+        <ActivityIndicator color={props.color} size={64} />
+      </View>
+    );
+  } else {
+    return (
+      <View style={styles.container}>
+        <FlatList
+          style={styles.flatList}
+          data={getData()}
+          renderItem={renderItem}
+          refreshControl={
+            <RefreshControl onRefresh={refresh} refreshing={state.loading} />
+          }
+        />
+      </View>
+    );
+  }
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
   },
   flatList: {
     height: Utils.dimensions.height,

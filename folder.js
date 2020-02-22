@@ -13,7 +13,7 @@ const Folder = props => {
           <Text style={styles.name}>{props.data.name}</Text>
         </View>
         <View style={styles.dateWrapper}>
-          <Text style={styles.date}>{props.data.files.length} { props.data.files.length == 1 ? 'element' : 'elements' }</Text>
+          <Text style={styles.date}>{props.data.elements.length} { props.data.elements.length == 1 ? 'element' : 'elements' }</Text>
           <Text style={styles.date}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
         </View>
       </View>
