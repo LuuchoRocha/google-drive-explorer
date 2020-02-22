@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, FlatList, RefreshControl, Platform, Alert } from "react-native";
 import RNFetchBlob from "rn-fetch-blob";
 import * as API from "./api";
@@ -15,6 +15,8 @@ const GoogleDriveExplorer = props => {
     files: [],
     accessToken: null
   });
+
+  const isFirstRun = useRef(true);
 
   const setState = newState => {
     _setState({
@@ -39,18 +41,6 @@ const GoogleDriveExplorer = props => {
   };
 
   const renderFolder = folder => {
-    console.log('render folder: ', folder.name);
-    fetch(API.urls.folderFilesCount(folder.id), API.buildFetchOptions(state.accessToken)).then((resp) => {
-      if (resp.ok) {
-        resp.json().then((jsonResponse) => {
-          //console.log(jsonResponse);
-        })
-      } else {
-        throw 'Error loading folder files';
-      }
-    }).catch((error) => {
-      console.warn(error);
-    });
     return <Folder data={folder} onPress={changeFolder} />;
   };
 
@@ -66,40 +56,44 @@ const GoogleDriveExplorer = props => {
     }
   };
 
-  const fetchData = () => {
-    if (!state.loading) {
-      setState({ loading: true });
-    }
+  const fetchData = async (accessToken) => {
+    setState({ loading: true });
 
-    const options = API.buildFetchOptions(state.accessToken);
-    fetch(API.urls.folderInfo(state.folderID), options).then(folderResponse => {
-      if (folderResponse.ok) {
-        folderResponse.json().then(folder => {
-          fetch(API.urls.folderFiles(state.folderID), options).then(
-            filesResponse => {
-              if (filesResponse.ok) {
-                filesResponse.json().then(filesJson => {
-                  let folders = [];
-                  let files = [];
-                  filesJson.files.forEach(element => {
-                    if (element.mimeType === API.folderMimeType) {
-                      folders.push(element);
-                    } else {
-                      files.push(element);
-                    }
-                  });
-                  folders = Utils.sortByName(folders);
-                  files = Utils.sortByName(files);
-                  setState({ files: folders.concat(files), loading: false });
-                });
-              }
-            }
-          );
-        });
-      } else {
-        setState({ loading: false, error: true });
+    const token = accessToken != null ? accessToken : state.accessToken;
+    const options = API.buildFetchOptions(token);
+    const filesResponse = await fetch(API.urls.folderFiles(state.folderID), options);
+
+    if (filesResponse.ok) {
+      const json = await filesResponse.json();
+      let folders = [];
+      let files = [];
+      let folderResponse, folderJsonResponse;
+
+      for (const element of json.files) {
+        if (element.mimeType === API.folderMimeType) {
+          folderResponse = await fetch(API.urls.folderFilesCount(element.id), options);
+          folderJsonResponse = await folderResponse.json();
+          element.files = folderJsonResponse.files;
+          folders.push(element);
+        } else {
+          files.push(element);
+        }
       }
-    });
+
+      folders = Utils.sortByName(folders);
+      files = Utils.sortByName(files);
+
+      console.log(files);
+      
+      if (accessToken != null ) {
+        setState({ files: folders.concat(files), loading: false, accessToken: token });
+      } else {
+        setState({ files: folders.concat(files), loading: false });
+      }
+    }
+    else {
+      setState({ loading: false, error: true });
+    }
   };
 
   const download = file => {
@@ -158,23 +152,22 @@ const GoogleDriveExplorer = props => {
 
   useEffect(() => {
     API.getAccessToken().then(token => {
-      setState({ accessToken: token });
+      console.log("Fetching after get token")
+      fetchData(token);
     });
   }, []);
 
   useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
     fetchData();
   }, [state.folderID]);
-
-  useEffect(() => {
-    fetchData();
-  }, [state.accessToken]);
 
   props.reference(() => {
     return { goToParent: goToParent.bind(this), parentPresent: parentPresent.bind(this) };
   });
-  
-  console.log("PASO!");
 
   return (
     <View style={styles.container}>
