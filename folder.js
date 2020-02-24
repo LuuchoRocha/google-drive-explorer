@@ -6,15 +6,18 @@ import * as Utils from './utils';
 const Folder = props => {
   const date = new Date(props.data.modifiedTime);
   return (
-    <TouchableOpacity style={styles.container} onPress={() => { props.onPress(props.data.id)}}>
+    <TouchableOpacity style={styles.container} onPress={() => { props.onPress(props.data.id)}} onLongPress={props.onPressMenu}>
       <View style={styles.flexContainer}>
+        <Utils.Icon mimeType={props.data.mimeType} size={32} />
         <View style={styles.flex}>
-          <Icon size={24} color="#777" name="folder" style={styles.icon} />
-          <Text style={styles.name}>{props.data.name}</Text>
+          <Text>{props.data.name}</Text>
+          <Text style={styles.info}>{props.data.elements.length} { props.data.elements.length == 1 ? 'element' : 'elements' }</Text>
+          <Text style={styles.info}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
         </View>
-        <View style={styles.dateWrapper}>
-          <Text style={styles.date}>{props.data.elements.length} { props.data.elements.length == 1 ? 'element' : 'elements' }</Text>
-          <Text style={styles.date}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
+        <View style={styles.menuButton}>
+          <TouchableOpacity onPress={props.onPressMenu}>
+            <Utils.MenuIcon />
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -24,8 +27,6 @@ const Folder = props => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    alignItems: "center",
-    flexDirection: "row",
   },
   flexContainer: {
     flex: 1,
@@ -34,26 +35,22 @@ const styles = StyleSheet.create({
   },
   container: {
     width: Dimensions.get("window").width - 16,
-    height: 48,
+    height: 64,
     margin: 8,
     marginBottom: 0,
-    borderRadius: 4,
-    borderWidth: 0.25,
-    borderColor: 'rgba(0, 0, 0, 0.25)',
   },
-  name: {},
-  date: { 
+  info: { 
     fontStyle: "italic",
     color: '#777', 
-    paddingHorizontal: 8,
     fontSize: 12,
   },
   icon: {
     paddingHorizontal: 8,
   },
-  dateWrapper: {
-    alignItems: 'flex-end'
-  },
+  menuButton: {
+    flex: 1,
+    alignItems: "flex-end"
+  }
 })
 
 export default Folder;

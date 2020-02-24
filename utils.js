@@ -1,6 +1,6 @@
 import React from "react";
 import { PermissionsAndroid, Platform, Dimensions, StyleSheet } from "react-native";
-import MaterialIcon from "react-native-vector-icons/MaterialCommunityIcons";
+import MaterialCommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const sortByName = array => {
   return array.sort((a, b) => {
@@ -41,47 +41,38 @@ const formatSize = size => {
 }
 
 const Icon = (props) => {
-  if (props.mimeType.match('image/')) {
-    return(
-      <MaterialIcon size={24} color="#f55" name="file-image" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match('video/')) {
-    return(
-      <MaterialIcon size={24} color="#f55" name="file-video" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match('text/')) {
-    return(
-      <MaterialIcon size={24} color="#49f" name="file-document" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match('audio/')) {
-    return(
-      <MaterialIcon size={24} color="#f55" name="file-music" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match('application/pdf')) {
-    return(
-      <MaterialIcon size={24} color="#f55" name="file-pdf" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match('application/pdf')) {
-    return(
-      <MaterialIcon size={24} color="#f55" name="file-pdf" style={styles.icon} />
-    );
-  }
-  if (props.mimeType.match(/application\/zip|gzip|x-7z-compressed|x-bzip|x-bzip2|x-rar-compressed|x-tar/)) {
-    return(
-      <MaterialIcon size={24} color="#B84" name="zip-box" style={styles.icon} />
-    );
-  }
+  if (props.mimeType.match('folder')) return (
+    <MaterialCommunityIcon size={props.size} color="#777" name="folder" style={styles.icon} />
+  );
+  if (props.mimeType.match('image/')) return (
+    <MaterialCommunityIcon size={props.size} color="#f55" name="file-image" style={styles.icon} />
+  );
+  if (props.mimeType.match('video/')) return (
+    <MaterialCommunityIcon size={props.size} color="#f55" name="file-video" style={styles.icon} />
+  );
+  if (props.mimeType.match('text/')) return (
+    <MaterialCommunityIcon size={props.size} color="#49f" name="file-document" style={styles.icon} />
+  );
+  if (props.mimeType.match('audio/')) return (
+    <MaterialCommunityIcon size={props.size} color="#f55" name="file-music" style={styles.icon} />
+  );
+  if (props.mimeType.match('application/pdf')) return (
+    <MaterialCommunityIcon size={props.size} color="#f55" name="file-pdf" style={styles.icon} />
+  );
+  if (props.mimeType.match('application/pdf')) return (
+    <MaterialCommunityIcon size={props.size} color="#f55" name="file-pdf" style={styles.icon} />
+  );
+  if (props.mimeType.match(/application\/zip|gzip|x-7z-compressed|x-bzip|x-bzip2|x-rar-compressed|x-tar/)) return (
+    <MaterialCommunityIcon size={props.size} color="#B84" name="zip-box" style={styles.icon} />
+  );
   return(
-    <MaterialIcon size={24} color="#49f" name="file" style={styles.icon} />
+    <MaterialCommunityIcon size={props.size} color="#49f" name="file" style={styles.icon} />
   );
 }
 
-export { sortByName, requestStoragePermission, dimensions, formatSize, Icon };
+const MenuIcon = () => (<MaterialCommunityIcon size={24} color="#777" name="dots-vertical" style={styles.icon} />);
+
+export { sortByName, requestStoragePermission, dimensions, formatSize, Icon, MenuIcon };
 
 const styles = StyleSheet.create({
   icon: {

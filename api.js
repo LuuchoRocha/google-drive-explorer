@@ -23,8 +23,8 @@ async function getAccessToken() {
 };
 
 const urls = {
-  folderInfo: (id) => (baseURL + "files/" + id),
-  folderFiles: (id) => (baseURL + "files?q=\"" + id + "\" in parents" + "&fields=files/*"),
+  folderInfo: (id) => (baseURL + "files/" + id + "?fields=id,name"),
+  folderFiles: (id) => (baseURL + "files?q=\"" + id + "\" in parents" + "&fields=files/id,files/name,files/mimeType,files/size,files/modifiedTime"),
   folderFilesCount: (id) => (baseURL + "files?q=\"" + id + "\" in parents" + "&fields=files/id"),
   downloadFile: (id) => (baseURL + "files/" + id + "?alt=media")
 };

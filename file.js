@@ -5,15 +5,18 @@ import * as Utils from './utils';
 const File = props => {
   const date = new Date(props.data.modifiedTime);
   return (
-    <TouchableOpacity style={styles.container} onPress={props.onPress}>
+    <TouchableOpacity style={styles.container} onPress={props.onPress} onLongPress={props.onPressMenu}>
       <View style={styles.flexContainer}>
+        <Utils.Icon mimeType={props.data.mimeType} size={32} />
         <View style={styles.flex}>
-          <Utils.Icon mimeType={props.data.mimeType} />
-          <Text style={styles.name}>{props.data.name}</Text>
+          <Text>{props.data.name}</Text>
+          <Text style={styles.info}>{Utils.formatSize(props.data.size)}</Text>
+          <Text style={styles.info}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
         </View>
-        <View style={styles.fileInfo}>
-          <Text style={styles.date}>{Utils.formatSize(props.data.size)}</Text>
-          <Text style={styles.date}>{date.toLocaleDateString()} {date.toLocaleTimeString()}</Text>
+        <View style={styles.menuButton}>
+          <TouchableOpacity onPress={props.onPressMenu}>
+            <Utils.MenuIcon />
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -23,34 +26,30 @@ const File = props => {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    alignItems: "center",
-    flexDirection: "row",
   },
   flexContainer: {
     flex: 1,
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
   },
   container: {
     width: Dimensions.get("window").width - 16,
-    height: 48,
+    height: 64,
     margin: 8,
     marginBottom: 0,
-    borderRadius: 4,
-    borderWidth: 0.25,
-    borderColor: 'rgba(0, 0, 0, 0.25)',
   },
-  name: {},
-  date: { 
+  info: { 
     fontStyle: "italic",
     color: '#777', 
-    paddingHorizontal: 8,
     fontSize: 12,
   },
-  fileInfo: {
-    alignItems: 'flex-end'
+  icon: {
+    paddingHorizontal: 8,
   },
+  menuButton: {
+    flex: 1,
+    alignItems: "flex-end"
+  }
 })
 
 export default File;
