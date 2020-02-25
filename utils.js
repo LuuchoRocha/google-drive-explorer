@@ -1,5 +1,5 @@
 import React from "react";
-import { PermissionsAndroid, Platform, Dimensions, StyleSheet } from "react-native";
+import { PermissionsAndroid, Platform, Dimensions, StyleSheet, TouchableOpacity, TouchableHighlight } from "react-native";
 import MaterialCommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 
 const sortByName = array => {
@@ -70,12 +70,25 @@ const Icon = (props) => {
   );
 }
 
-const MenuIcon = () => (<MaterialCommunityIcon size={24} color="#777" name="dots-vertical" style={styles.icon} />);
+const MenuIcon = (props) => (
+  <TouchableHighlight onPress={props.onPress} underlayColor="#F7F7F7" style={styles.menuButton}>
+    <MaterialCommunityIcon size={props.size} color="#777" name="dots-vertical" style={styles.icon} />
+  </TouchableHighlight> 
+);
 
-export { sortByName, requestStoragePermission, dimensions, formatSize, Icon, MenuIcon };
+const MenuOptionIcon = (props) => (<MaterialCommunityIcon size={props.size} color={props.color} name={props.name} style={styles.icon} />);
+
+export { sortByName, requestStoragePermission, dimensions, formatSize, Icon, MenuIcon, MenuOptionIcon };
 
 const styles = StyleSheet.create({
   icon: {
     paddingHorizontal: 8
+  },
+  menuButton: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24,
+    justifyContent: "center", 
+    alignItems: "center" 
   }
 });
